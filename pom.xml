@@ -5,12 +5,12 @@
 	<modelVersion>4.0.0</modelVersion>
 	
     <groupId>com.ruoyi</groupId>
-    <artifactId>ruoyi</artifactId>
+    <artifactId>fms</artifactId>
     <version>3.9.2</version>
 
     <name>ruoyi</name>
     <url>http://www.ruoyi.vip</url>
-    <description>若依管理系统</description>
+    <description>身份标识管理信息系统</description>
     
     <properties>
         <ruoyi.version>3.9.2</ruoyi.version>
@@ -138,35 +138,35 @@
             <!-- 定时任务-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
-                <artifactId>ruoyi-quartz</artifactId>
+                <artifactId>fms-quartz</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
             <!-- 代码生成-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
-                <artifactId>ruoyi-generator</artifactId>
+                <artifactId>fms-generator</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
             <!-- 核心模块-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
-                <artifactId>ruoyi-framework</artifactId>
+                <artifactId>fms-framework</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
             <!-- 系统模块-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
-                <artifactId>ruoyi-system</artifactId>
+                <artifactId>fms-system</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
             <!-- 通用工具-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
-                <artifactId>ruoyi-common</artifactId>
+                <artifactId>fms-common</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
@@ -174,12 +174,12 @@
     </dependencyManagement>
 
     <modules>
-        <module>ruoyi-admin</module>
-        <module>ruoyi-framework</module>
-        <module>ruoyi-system</module>
-        <module>ruoyi-quartz</module>
-        <module>ruoyi-generator</module>
-        <module>ruoyi-common</module>
+        <module>fms-admin</module>
+        <module>fms-framework</module>
+        <module>fms-system</module>
+        <module>fms-quartz</module>
+        <module>fms-generator</module>
+        <module>fms-common</module>
     </modules>
     <packaging>pom</packaging>
 

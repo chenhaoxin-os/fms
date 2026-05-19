@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fms.system.mapper.CardIssueMapper">
+
+	<resultMap type="CardIssue" id="CardIssueResult">
+		<id     property="id"          column="id"           />
+		<result property="holderName"  column="holder_name"  />
+		<result property="personCode"  column="person_code"  />
+		<result property="cardType"    column="card_type"    />
+		<result property="decimalCode" column="decimal_code" />
+		<result property="epcCode"     column="epc_code"     />
+		<result property="issueTime"   column="issue_time"   />
+		<result property="cardStatus"  column="card_status"  />
+		<result property="createBy"    column="create_by"    />
+		<result property="createTime"  column="create_time"  />
+		<result property="updateBy"    column="update_by"    />
+		<result property="updateTime"  column="update_time"  />
+		<result property="remark"      column="remark"       />
+		<result property="userId"      column="user_id"       />
+	</resultMap>
+
+	<sql id="selectCardIssueVo">
+		select id, holder_name, person_code, card_type, decimal_code, epc_code, issue_time, card_status,
+			   create_by, create_time, update_by, update_time, remark,user_id
+		from card_issue
+	</sql>
+
+	<select id="selectCardIssueList" parameterType="CardIssue" resultMap="CardIssueResult">
+		<include refid="selectCardIssueVo"/>
+		<where>
+			<if test="holderName != null and holderName != ''">
+				AND holder_name like concat('%', #{holderName}, '%')
+			</if>
+			<if test="cardStatus != null and cardStatus != ''">
+				AND card_status = #{cardStatus}
+			</if>
+			<if test="cardType != null and cardType != ''">
+				AND card_type = #{cardType}
+			</if>
+		</where>
+		order by id desc
+	</select>
+
+	<select id="selectCardIssueById" parameterType="Long" resultMap="CardIssueResult">
+		<include refid="selectCardIssueVo"/>
+		where id = #{id}
+	</select>
+
+	<select id="checkPersonCodeUnique" parameterType="String" resultMap="CardIssueResult">
+		<include refid="selectCardIssueVo"/>
+		where person_code = #{personCode} limit 1
+	</select>
+
+	<insert id="insertCardIssue" parameterType="CardIssue" useGeneratedKeys="true" keyProperty="id">
+		insert into card_issue (
+		<if test="holderName != null and holderName != ''">holder_name,</if>
+		<if test="personCode != null and personCode != ''">person_code,</if>
+		<if test="cardType != null and cardType != ''">card_type,</if>
+		<if test="decimalCode != null and decimalCode != ''">decimal_code,</if>
+		<if test="epcCode != null and epcCode != ''">epc_code,</if>
+		<if test="issueTime != null">issue_time,</if>
+		<if test="cardStatus != null and cardStatus != ''">card_status,</if>
+		<if test="createBy != null and createBy != ''">create_by,</if>
+		<if test="remark != null and remark != ''">remark,</if>
+		<if test="userId != null and userId != ''">user_id,</if>
+		create_time
+		) values (
+		<if test="holderName != null and holderName != ''">#{holderName},</if>
+		<if test="personCode != null and personCode != ''">#{personCode},</if>
+		<if test="cardType != null and cardType != ''">#{cardType},</if>
+		<if test="decimalCode != null and decimalCode != ''">#{decimalCode},</if>
+		<if test="epcCode != null and epcCode != ''">#{epcCode},</if>
+		<if test="issueTime != null">#{issueTime},</if>
+		<if test="cardStatus != null and cardStatus != ''">#{cardStatus},</if>
+		<if test="createBy != null and createBy != ''">#{createBy},</if>
+		<if test="remark != null and remark != ''">#{remark},</if>
+		<if test="userId != null and userId != ''">#{userId},</if>
+		sysdate()
+		)
+	</insert>
+
+	<update id="updateCardIssue" parameterType="CardIssue">
+		update card_issue
+		<set>
+			<if test="holderName != null and holderName != ''">holder_name = #{holderName},</if>
+			<if test="personCode != null and personCode != ''">person_code = #{personCode},</if>
+			<if test="cardType != null and cardType != ''">card_type = #{cardType},</if>
+			<if test="decimalCode != null and decimalCode != ''">decimal_code = #{decimalCode},</if>
+			<if test="epcCode != null and epcCode != ''">epc_code = #{epcCode},</if>
+			<if test="issueTime != null">issue_time = #{issueTime},</if>
+			<if test="cardStatus != null and cardStatus != ''">card_status = #{cardStatus},</if>
+			<if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+			<if test="remark != null and remark != ''">remark = #{remark},</if>
+			<if test="userId != null and userId != ''">user_id = #{userId},</if>
+			update_time = sysdate()
+		</set>
+		where id = #{id}
+	</update>
+
+	<delete id="deleteCardIssueById" parameterType="Long">
+		delete from card_issue where id = #{id}
+	</delete>
+
+	<delete id="deleteCardIssueByIds" parameterType="String">
+		delete from card_issue where id in
+		<foreach collection="array" item="id" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+	<delete id="deleteUserByIds" parameterType="Long">
+		delete from card_issue  where user_id in
+		<foreach collection="array" item="userId" open="(" separator="," close=")">
+			#{userId}
+		</foreach>
+	</delete>
+</mapper>
