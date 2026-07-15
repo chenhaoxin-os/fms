@@ -15,6 +15,7 @@ const user = {
     nickName: '',
     avatar: '',
     roles: [],
+    roleNames: [],
     permissions: []
   },
 
@@ -36,6 +37,9 @@ const user = {
     },
     SET_ROLES: (state, roles) => {
       state.roles = roles
+    },
+    SET_ROLENAMES: (state, roles) => {
+      state.roleNames = roles
     },
     SET_PERMISSIONS: (state, permissions) => {
       state.permissions = permissions
@@ -72,6 +76,8 @@ const user = {
           }
           if (res.roles && res.roles.length > 0) { // 验证返回的roles是否是一个非空数组
             commit('SET_ROLES', res.roles)
+            commit('SET_ROLENAMES', res.roleNames)
+
             commit('SET_PERMISSIONS', res.permissions)
           } else {
             commit('SET_ROLES', ['ROLE_DEFAULT'])
@@ -106,6 +112,7 @@ const user = {
         logout(state.token).then(() => {
           commit('SET_TOKEN', '')
           commit('SET_ROLES', [])
+          commit('SET_ROLENAMES', [])
           commit('SET_PERMISSIONS', [])
           removeToken()
           resolve()

@@ -209,6 +209,13 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
  			<if test="loginDate != null">login_date = #{loginDate},</if>
  			<if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
  			<if test="remark != null">remark = #{remark},</if>
+			<!-- 以下为参照 insertUser 新增的字段 -->
+			<if test="historyOfDrugAllergy != null and historyOfDrugAllergy != ''">history_of_drug_allergy = #{historyOfDrugAllergy},</if>
+			<if test="bloodType != null and bloodType != ''">blood_type = #{bloodType},</if>
+			<if test="personCategory != null and personCategory != ''">person_category = #{personCategory},</if>
+			<if test="serialNo != null and serialNo != ''">serial_no = #{serialNo},</if>
+			<if test="userNumber != null and userNumber != ''">user_number = #{userNumber},</if>
+			<if test="yearOfEnlistment != null and yearOfEnlistment != ''">year_of_enlistment = #{yearOfEnlistment},</if>
  			update_time = sysdate()
  		</set>
  		where user_id = #{userId}

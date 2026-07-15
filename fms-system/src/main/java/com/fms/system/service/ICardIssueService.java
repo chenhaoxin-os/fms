@@ -2,6 +2,8 @@ package com.fms.system.service;
 
 
 import java.util.List;
+import java.util.Map;
+
 import com.fms.system.domain.CardIssue;
 
 /**
@@ -56,4 +58,8 @@ public interface ICardIssueService
      * 校验人员编号是否唯一
      */
     public boolean checkPersonCodeUnique(CardIssue cardIssue);
+
+    Map<String, String> generateCode(String personCode, String cardType);
+
+    String getNameByEpcCode(String epcCode);
 }

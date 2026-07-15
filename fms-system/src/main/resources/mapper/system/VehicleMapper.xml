@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fms.system.mapper.VehicleMapper">
+
+	<resultMap id="VehicleResult" type="Vehicle">
+		<id     property="id"          column="id" />
+		<result property="plate"       column="plate" />
+		<result property="name"        column="name" />
+		<result property="maxCapacity" column="max_capacity" />
+		<result property="devicePower" column="device_power" />
+		<result property="isRunning"   column="is_running" />
+		<result property="stableCrew"  column="stable_crew" />
+		<result property="createBy"    column="create_by" />
+		<result property="createTime"  column="create_time" />
+		<result property="updateBy"    column="update_by" />
+		<result property="updateTime"  column="update_time" />
+		<result property="remark"      column="remark" />
+		<result property="deviceId"    column="device_id" />
+	</resultMap>
+
+	<sql id="selectVehicleVo">
+		select id, plate, name, max_capacity, device_power, is_running, stable_crew, device_id,
+			   create_by, create_time, update_by, update_time, remark
+		from vehicle
+	</sql>
+
+	<select id="selectVehicleList" parameterType="Vehicle" resultMap="VehicleResult">
+		<include refid="selectVehicleVo"/>
+		<where>
+			<if test="plate != null and plate != ''">
+				and plate like concat('%', #{plate}, '%')
+			</if>
+			<if test="name != null and name != ''">
+				and name like concat('%', #{name}, '%')
+			</if>
+		</where>
+		order by id desc
+	</select>
+
+	<select id="selectVehicleById" parameterType="Long" resultMap="VehicleResult">
+		<include refid="selectVehicleVo"/>
+		where id = #{id}
+	</select>
+
+	<select id="selectVehicleByDeviceId" parameterType="Long" resultMap="VehicleResult">
+		<include refid="selectVehicleVo"/>
+		where device_id = #{id}
+	</select>
+
+	<insert id="insertVehicle" parameterType="Vehicle" useGeneratedKeys="true" keyProperty="id">
+		insert into vehicle (
+		<if test="plate != null and plate != ''">plate,</if>
+		<if test="name != null and name != ''">name,</if>
+		<if test="maxCapacity != null">max_capacity,</if>
+		<if test="devicePower != null">device_power,</if>
+		<if test="isRunning != null">is_running,</if>
+		<if test="stableCrew != null and stableCrew != ''">stable_crew,</if>
+		<if test="deviceId != null">device_id,</if>   <!-- 新增 -->
+		<if test="createBy != null and createBy != ''">create_by,</if>
+		<if test="remark != null and remark != ''">remark,</if>
+		create_time
+		) values (
+		<if test="plate != null and plate != ''">#{plate},</if>
+		<if test="name != null and name != ''">#{name},</if>
+		<if test="maxCapacity != null">#{maxCapacity},</if>
+		<if test="devicePower != null">#{devicePower},</if>
+		<if test="isRunning != null">#{isRunning},</if>
+		<if test="stableCrew != null and stableCrew != ''">#{stableCrew},</if>
+		<if test="deviceId != null">#{deviceId},</if>
+		<if test="createBy != null and createBy != ''">#{createBy},</if>
+		<if test="remark != null and remark != ''">#{remark},</if>
+		sysdate()
+		)
+	</insert>
+
+	<update id="updateVehicle" parameterType="Vehicle">
+		update vehicle
+		<set>
+			<if test="plate != null and plate != ''">plate = #{plate},</if>
+			<if test="name != null and name != ''">name = #{name},</if>
+			<if test="maxCapacity != null">max_capacity = #{maxCapacity},</if>
+			<if test="devicePower != null">device_power = #{devicePower},</if>
+			<if test="isRunning != null">is_running = #{isRunning},</if>
+			<if test="stableCrew != null and stableCrew != ''">stable_crew = #{stableCrew},</if>
+			<!-- 关键：当 deviceId 为 null 时也更新 -->
+			device_id = #{deviceId},
+			<if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+			<if test="remark != null and remark != ''">remark = #{remark},</if>
+			update_time = sysdate()
+		</set>
+		where id = #{id}
+	</update>
+
+	<delete id="deleteVehicleById" parameterType="Long">
+		delete from vehicle where id = #{id}
+	</delete>
+
+	<delete id="deleteVehicleByIds" parameterType="String">
+		delete from vehicle where id in
+		<foreach collection="array" item="id" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+	<!-- 统计 deviceId 被多少车辆使用（排除自身） -->
+	<select id="countByDeviceId" resultType="int">
+		select count(1) from vehicle
+		where device_id = #{deviceId}
+		<if test="excludeId != null and excludeId != ''">
+			and id != #{excludeId}
+		</if>
+	</select>
+
+	<select id="selectDeviceIdById" parameterType="Long" resultType="Long">
+		select device_id from vehicle where id = #{id}
+	</select>
+</mapper>

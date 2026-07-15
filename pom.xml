@@ -10,6 +10,12 @@
 
     <name>ruoyi</name>
     <url>http://www.ruoyi.vip</url>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot</artifactId>
+        </dependency>
+    </dependencies>
     <description>身份标识管理信息系统</description>
     
     <properties>

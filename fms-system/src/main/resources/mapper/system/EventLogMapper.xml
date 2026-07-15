@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fms.system.mapper.EventLogMapper">
+
+	<resultMap type="EventLog" id="EventLogResult">
+		<id     property="id"           column="id"          />
+		<result property="eventId"      column="event_id"    />
+		<result property="eventTime"    column="event_time"  />
+		<result property="eventName"    column="event_name"  />
+		<result property="eventType"    column="event_type"  />
+		<result property="dispatchForce" column="dispatch_force"/>
+		<result property="status"       column="status"      />
+		<result property="operator"     column="operator"    />
+		<result property="vehicleId"    column="vehicle_id"  />
+		<result property="jsonData"     column="json_data"   />
+		<result property="createBy"     column="create_by"   />
+		<result property="createTime"   column="create_time" />
+		<result property="updateBy"     column="update_by"   />
+		<result property="updateTime"   column="update_time" />
+		<result property="remark"       column="remark"      />
+	</resultMap>
+
+	<sql id="selectEventLogVo">
+		select id, event_id, event_time, event_name, event_type, dispatch_force,
+			   status, operator, vehicle_id, json_data,
+			   create_by, create_time, update_by, update_time, remark
+		from event_log
+	</sql>
+
+	<!-- 查询事件日志列表 -->
+	<select id="selectEventLogList" parameterType="EventLog" resultMap="EventLogResult">
+		<include refid="selectEventLogVo"/>
+		<where>
+			<if test="eventId != null and eventId != ''">
+				AND event_id like concat('%', #{eventId}, '%')
+			</if>
+			<if test="eventName != null and eventName != ''">
+				AND event_name like concat('%', #{eventName}, '%')
+			</if>
+			<if test="eventType != null and eventType != ''">
+				AND event_type = #{eventType}
+			</if>
+			<if test="dispatchForce != null and dispatchForce != ''">
+				AND dispatch_force like concat('%', #{dispatchForce}, '%')
+			</if>
+			<if test="status != null and status != ''">
+				AND status = #{status}
+			</if>
+			<if test="operator != null and operator != ''">
+				AND operator like concat('%', #{operator}, '%')
+			</if>
+			<if test="vehicleId != null">
+				AND vehicle_id = #{vehicleId}
+			</if>
+			<if test="params != null and params.beginTime != null and params.beginTime != ''">
+				AND event_time &gt;= #{params.beginTime}
+			</if>
+			<if test="params != null and params.endTime != null and params.endTime != ''">
+				AND event_time &lt;= #{params.endTime}
+			</if>
+		</where>
+		order by event_time desc
+	</select>
+
+	<!-- 根据ID查询事件日志 -->
+	<select id="selectEventLogById" parameterType="Long" resultMap="EventLogResult">
+		<include refid="selectEventLogVo"/>
+		where id = #{id}
+	</select>
+
+	<!-- 根据事件ID查询事件日志 -->
+	<select id="selectEventLogByEventId" parameterType="String" resultMap="EventLogResult">
+		<include refid="selectEventLogVo"/>
+		where event_id = #{eventId} limit 1
+	</select>
+
+	<!-- 新增事件日志 -->
+	<insert id="insertEventLog" parameterType="EventLog" useGeneratedKeys="true" keyProperty="id">
+		insert into event_log (
+		<if test="eventId != null and eventId != ''">event_id,</if>
+		<if test="eventTime != null">event_time,</if>
+		<if test="eventName != null and eventName != ''">event_name,</if>
+		<if test="eventType != null and eventType != ''">event_type,</if>
+		<if test="dispatchForce != null and dispatchForce != ''">dispatch_force,</if>
+		<if test="status != null and status != ''">status,</if>
+		<if test="operator != null and operator != ''">operator,</if>
+		<if test="vehicleId != null">vehicle_id,</if>
+		<if test="jsonData != null and jsonData != ''">json_data,</if>
+		<if test="createBy != null and createBy != ''">create_by,</if>
+		<if test="remark != null and remark != ''">remark,</if>
+		create_time
+		) values (
+		<if test="eventId != null and eventId != ''">#{eventId},</if>
+		<if test="eventTime != null">#{eventTime},</if>
+		<if test="eventName != null and eventName != ''">#{eventName},</if>
+		<if test="eventType != null and eventType != ''">#{eventType},</if>
+		<if test="dispatchForce != null and dispatchForce != ''">#{dispatchForce},</if>
+		<if test="status != null and status != ''">#{status},</if>
+		<if test="operator != null and operator != ''">#{operator},</if>
+		<if test="vehicleId != null">#{vehicleId},</if>
+		<if test="jsonData != null and jsonData != ''">#{jsonData},</if>
+		<if test="createBy != null and createBy != ''">#{createBy},</if>
+		<if test="remark != null and remark != ''">#{remark},</if>
+		sysdate()
+		)
+	</insert>
+
+	<!-- 修改事件日志 -->
+	<update id="updateEventLog" parameterType="EventLog">
+		update event_log
+		<set>
+			<if test="eventId != null and eventId != ''">event_id = #{eventId},</if>
+			<if test="eventTime != null">event_time = #{eventTime},</if>
+			<if test="eventName != null and eventName != ''">event_name = #{eventName},</if>
+			<if test="eventType != null and eventType != ''">event_type = #{eventType},</if>
+			<if test="dispatchForce != null and dispatchForce != ''">dispatch_force = #{dispatchForce},</if>
+			<if test="status != null and status != ''">status = #{status},</if>
+			<if test="operator != null and operator != ''">operator = #{operator},</if>
+			<if test="vehicleId != null">vehicle_id = #{vehicleId},</if>
+			<if test="jsonData != null and jsonData != ''">json_data = #{jsonData},</if>
+			<if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+			<if test="remark != null and remark != ''">remark = #{remark},</if>
+			update_time = sysdate()
+		</set>
+		where id = #{id}
+	</update>
+
+	<!-- 删除事件日志 -->
+	<delete id="deleteEventLogById" parameterType="Long">
+		delete from event_log where id = #{id}
+	</delete>
+
+	<!-- 批量删除事件日志 -->
+	<delete id="deleteEventLogByIds" parameterType="String">
+		delete from event_log where id in
+		<foreach collection="array" item="id" open="(" separator="," close=")">
+			#{id}
+		</foreach>
+	</delete>
+
+</mapper>

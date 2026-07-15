@@ -1,8 +1,7 @@
 package com.fms.system.service.impl;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.time.Duration;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.fms.system.domain.CardIssue;
@@ -12,6 +11,7 @@ import jakarta.validation.Validator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -66,6 +66,9 @@ public class SysUserServiceImpl implements ISysUserService
     protected Validator validator;
     @Autowired
     private CardIssueMapper cardIssueMapper;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 根据条件分页查询用户列表
@@ -273,7 +276,7 @@ public class SysUserServiceImpl implements ISysUserService
         cardIssue.setPersonCode(user.getUserName());
         cardIssue.setUserId(user.getUserId());
         cardIssue.setCardStatus("0"); // 待发卡
-        cardIssueMapper.insertCardIssue(cardIssue);
+        //cardIssueMapper.insertCardIssue(cardIssue);
         return rows;
     }
 
@@ -492,7 +495,7 @@ public class SysUserServiceImpl implements ISysUserService
         userRoleMapper.deleteUserRole(userIds);
         // 删除用户与岗位关联
         userPostMapper.deleteUserPost(userIds);
-        cardIssueMapper.deleteUserByIds(userIds);
+        //cardIssueMapper.deleteUserByIds(userIds);
         return userMapper.deleteUserByIds(userIds);
     }
 
@@ -569,5 +572,36 @@ public class SysUserServiceImpl implements ISysUserService
             successMsg.insert(0, "恭喜您，数据已全部导入成功！共 " + successNum + " 条，数据如下：");
         }
         return successMsg.toString();
+    }
+
+    /**
+     * 生成流水号和人员编号
+     * @param personCategory 人员类别（1/2/3）
+     * @param year 入队年份（4位数字）
+     * @return Map 包含 serialNo（5位流水号）和 userNumber（完整编号）
+     */
+    @Override
+    public Map<String, String> generateUserNumber(String personCategory, String year) {
+        // 参数校验
+        if (!StringUtils.hasText(personCategory) || !StringUtils.hasText(year)) {
+            throw new ServiceException("人员类别和入队年份不能为空");
+        }
+        // Redis Key，例如 "serial:2026"
+        String redisKey = "serial:" + year;
+        // 原子递增，从1开始
+        Long serial = redisTemplate.opsForValue().increment(redisKey);
+        // 如果第一次使用，设置过期时间（比如2年），避免Key永久保留
+        if (serial == 1) {
+            redisTemplate.expire(redisKey, Duration.ofDays(730));
+        }
+        // 补零至5位
+        String serialNo = String.format("%05d", serial);
+        // 组装完整人员编号：类别 + 年份 + 流水号
+        String userNumber = personCategory + year + serialNo;
+
+        Map<String, String> result = new HashMap<>();
+        result.put("serialNo", serialNo);
+        result.put("userNumber", userNumber);
+        return result;
     }
 }

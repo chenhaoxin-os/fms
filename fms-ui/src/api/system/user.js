@@ -134,3 +134,11 @@ export function deptTreeSelect() {
     method: 'get'
   })
 }
+// 生成流水号和人员编号
+export function generateUserNumber(personCategory, yearOfEnlistment) {
+  return request({
+    url: '/system/user/generateUserNumber',
+    method: 'get',
+    params: { personCategory, yearOfEnlistment }
+  })
+}

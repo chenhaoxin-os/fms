@@ -3,6 +3,7 @@ package com.fms.system.mapper;
 
 import java.util.List;
 import com.fms.system.domain.Device;
+import com.fms.system.domain.ReaderEvent;
 
 /**
  * 装置设备Mapper接口
@@ -66,4 +67,6 @@ public interface DeviceMapper
      * @return 结果
      */
     public int deleteDeviceByIds(Long[] ids);
+
+    void pushEvent(ReaderEvent readerEvent);
 }

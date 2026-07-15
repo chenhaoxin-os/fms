@@ -44,6 +44,7 @@ public class CardIssue extends BaseEntity
     /** 用户id */
     private Long userId;
 
+    private String userNumber;
     // getter/setter 省略（请使用IDE生成或Lombok）
     // 建议使用Lombok @Data，但若依默认无Lombok，需手动生成
     // 以下仅展示关键字段，实际需补充所有get/set
@@ -73,6 +74,14 @@ public class CardIssue extends BaseEntity
         this.userId = userId;
     }
 
+    public String getUserNumber() {
+        return userNumber;
+    }
+
+    public void setUserNumber(String userNumber) {
+        this.userNumber = userNumber;
+    }
+
     @Override
     public String toString() {
         return "CardIssue{" +
@@ -84,7 +93,8 @@ public class CardIssue extends BaseEntity
                 ", epcCode='" + epcCode + '\'' +
                 ", issueTime=" + issueTime +
                 ", cardStatus='" + cardStatus + '\'' +
-                ", userId='" + userId + '\'' +
+                ", userId=" + userId +
+                ", userNumber='" + userNumber + '\'' +
                 '}';
     }
 }

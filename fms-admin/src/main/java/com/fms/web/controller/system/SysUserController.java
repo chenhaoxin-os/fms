@@ -1,20 +1,14 @@
 package com.fms.web.controller.system;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.fms.common.annotation.Log;
 import com.fms.common.core.controller.BaseController;
@@ -236,5 +230,19 @@ public class SysUserController extends BaseController
     public AjaxResult deptTree(SysDept dept)
     {
         return success(deptService.selectDeptTreeList(dept));
+    }
+    /**
+     * 生成流水号及人员编号
+     * @param personCategory 人员类别（1-干部，2-消防员，3-政府专职队员）
+     * @param yearOfEnlistment 入队年份（如 2026）
+     * @return AjaxResult 包含 serialNo（流水号）和 userNumber（完整人员编号）
+     */
+    @PreAuthorize("@ss.hasPermi('system:user:add')")  // 仅允许有新增权限的用户调用
+    @GetMapping("/generateUserNumber")
+    public AjaxResult generateUserNumber(@RequestParam String personCategory,
+                                         @RequestParam String yearOfEnlistment) {
+        // 调用 Service 生成
+        Map<String, String> result = userService.generateUserNumber(personCategory, yearOfEnlistment);
+        return success(result);
     }
 }

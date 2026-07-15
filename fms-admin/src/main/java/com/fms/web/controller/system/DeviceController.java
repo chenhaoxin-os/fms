@@ -3,6 +3,8 @@ package com.fms.web.controller.system;
 
 
 import java.util.List;
+
+import com.fms.system.domain.ReaderEvent;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -69,7 +71,7 @@ public class DeviceController extends BaseController
     {
         if (!deviceService.checkDeviceIdUnique(device))
         {
-            return error("新增装置【" + device.getName() + "】失败，装置ID已存在");
+            return error("新增装置【" + device.getName() + "】失败，装置编号已存在");
         }
         return toAjax(deviceService.insertDevice(device));
     }
@@ -83,7 +85,7 @@ public class DeviceController extends BaseController
     {
         if (!deviceService.checkDeviceIdUnique(device))
         {
-            return error("修改装置【" + device.getName() + "】失败，装置ID已存在");
+            return error("修改装置【" + device.getName() + "】失败，装置编号已存在");
         }
         return toAjax(deviceService.updateDevice(device));
     }
@@ -119,4 +121,15 @@ public class DeviceController extends BaseController
         ExcelUtil<Device> util = new ExcelUtil<>(Device.class);
         util.exportExcel(response, list, "装置数据");
     }
+
+    /**
+     * 导出装置数据
+     */
+    @PostMapping("/pushEvent")
+    public void pushEvent(@RequestBody ReaderEvent readerEvent)
+    {
+        deviceService.pushEvent(readerEvent);
+    }
+
+
 }

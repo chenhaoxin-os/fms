@@ -19,6 +19,7 @@
 		<result property="updateTime"  column="update_time"  />
 		<result property="remark"      column="remark"       />
 		<result property="userId"      column="user_id"       />
+		<result property="userNumber"      column="user_number"       />
 	</resultMap>
 
 	<sql id="selectCardIssueVo">
@@ -27,20 +28,54 @@
 		from card_issue
 	</sql>
 
+	<!-- 原 selectCardIssueList 增加 personCode 条件 -->
 	<select id="selectCardIssueList" parameterType="CardIssue" resultMap="CardIssueResult">
-		<include refid="selectCardIssueVo"/>
+		select
+		ci.id,
+		ci.holder_name,
+		ci.card_type,
+		ci.person_code,
+		ci.decimal_code,
+		ci.epc_code,
+		ci.issue_time,
+		ci.card_status,
+		ci.create_by,
+		ci.create_time,
+		ci.update_by,
+		ci.update_time,
+		ci.remark,
+		ci.user_id,
+		su.user_number          <!-- 新增字段 -->
+		from card_issue ci
+		left join sys_user su on ci.person_code = su.user_name and su.del_flag = '0'
 		<where>
 			<if test="holderName != null and holderName != ''">
-				AND holder_name like concat('%', #{holderName}, '%')
+				AND ci.holder_name like concat('%', #{holderName}, '%')
 			</if>
 			<if test="cardStatus != null and cardStatus != ''">
-				AND card_status = #{cardStatus}
+				AND ci.card_status = #{cardStatus}
 			</if>
 			<if test="cardType != null and cardType != ''">
-				AND card_type = #{cardType}
+				AND ci.card_type = #{cardType}
+			</if>
+			<if test="personCode != null and personCode != ''">
+				AND ci.person_code = #{personCode}
+			</if>
+			<if test="epcCode != null and epcCode != ''">
+				AND ci.epc_code like concat('%', #{epcCode}, '%')
 			</if>
 		</where>
-		order by id desc
+		order by ci.id desc
+	</select>
+
+	<!-- 新增：统计某人员所有卡片记录数（包括所有状态） -->
+	<select id="countByPersonCode" parameterType="String" resultType="int">
+		select count(1) from card_issue where person_code = #{personCode}
+	</select>
+
+	<!-- 新增：统计某人员已发卡数量（状态为1） -->
+	<select id="countIssuedByPersonCode" parameterType="String" resultType="int">
+		select count(1) from card_issue where person_code = #{personCode} and card_status = '1'
 	</select>
 
 	<select id="selectCardIssueById" parameterType="Long" resultMap="CardIssueResult">
@@ -115,4 +150,35 @@
 			#{userId}
 		</foreach>
 	</delete>
+
+	<select id="countByPersonCodeAndCardTypeAndStatus" resultType="int">
+		select count(1) from card_issue
+		where person_code = #{personCode}
+		and card_type = #{cardType}
+		and card_status = #{type}
+		<if test="excludeId != null">
+			and id != #{excludeId}
+		</if>
+	</select>
+
+	<select id="getNameByEpcCode" resultType="java.lang.String">
+		SELECT
+			concat ( ci.holder_name, '(', su.user_number, ')' )
+		FROM
+			card_issue ci
+				LEFT JOIN sys_user su ON ci.person_code = su.user_name
+				AND su.del_flag = '0'
+		WHERE
+			ci.epc_code LIKE concat('%',#{epcCode}, '%') limit 1
+	</select>
+
+
+
+	<select id="countByPersonCodeAndCardType" resultType="int">
+		select count(1) from card_issue
+		where person_code = #{personCode}
+		and card_type = #{cardType}
+	</select>
+
+
 </mapper>

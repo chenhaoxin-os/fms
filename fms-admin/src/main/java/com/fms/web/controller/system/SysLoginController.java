@@ -75,7 +75,9 @@ public class SysLoginController
         LoginUser loginUser = SecurityUtils.getLoginUser();
         SysUser user = loginUser.getUser();
         // 角色集合
-        Set<String> roles = permissionService.getRolePermission(user);
+        Set<String> roles = permissionService.getRolePermission(user,   "1");
+        // 角色集合
+        Set<String> roleNames = permissionService.getRolePermission(user,"2");
         // 权限集合
         Set<String> permissions = permissionService.getMenuPermission(user);
         if (!loginUser.getPermissions().equals(permissions))
@@ -86,6 +88,7 @@ public class SysLoginController
         AjaxResult ajax = AjaxResult.success();
         ajax.put("user", user);
         ajax.put("roles", roles);
+        ajax.put("roleNames", roleNames);
         ajax.put("permissions", permissions);
         ajax.put("pwdChrtype", getSysAccountChrtype());
         ajax.put("isDefaultModifyPwd", initPasswordIsModify(user.getPwdUpdateDate()));

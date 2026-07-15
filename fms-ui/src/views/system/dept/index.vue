@@ -62,6 +62,7 @@
       v-if="refreshTable"
       v-loading="loading"
       :data="deptList"
+      border
       row-key="deptId"
       :default-expand-all="isExpandAll"
       :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
@@ -359,3 +360,9 @@ export default {
   }
 }
 </script>
+<style scoped>
+/* 深度选择器覆盖按钮圆角 */
+::v-deep .el-button {
+  //border-radius: 16px;
+}
+</style>

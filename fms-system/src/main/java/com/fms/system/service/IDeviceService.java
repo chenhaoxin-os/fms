@@ -2,6 +2,7 @@ package com.fms.system.service;
 
 
 import com.fms.system.domain.Device;
+import com.fms.system.domain.ReaderEvent;
 import com.fms.system.domain.vo.DeviceStatisticsVO;
 
 import java.util.List;
@@ -85,4 +86,11 @@ public interface IDeviceService
      * @return 结果 true唯一 false不唯一
      */
     public boolean checkDeviceIdUnique(Device device);
+
+    /**
+     * 推送读卡器事件
+     *
+     * @param readerEvent 读卡器事件
+     */
+    void pushEvent(ReaderEvent readerEvent);
 }

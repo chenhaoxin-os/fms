@@ -9,6 +9,14 @@ export function listCard(query) {
   })
 }
 
+// 新增卡片记录（待发卡）
+export function addCard(data) {
+  return request({
+    url: '/system/cardIssue',
+    method: 'post',
+    data: data
+  });
+}
 // 发卡（写卡+绑定）
 export function issueCard(data) {
   return request({
@@ -18,6 +26,7 @@ export function issueCard(data) {
   })
 }
 
+
 // 注销
 export function cancelCard(data) {
   return request({
@@ -25,4 +34,13 @@ export function cancelCard(data) {
     method: 'post',
     params: data
   })
+}
+
+// api
+export function generateCardCode(personCode, cardType) {
+  return request({
+    url: '/system/cardIssue/generateCode',
+    method: 'get',
+    params: { personCode, cardType }
+  });
 }

@@ -49,7 +49,7 @@
           <right-toolbar :showSearch.sync="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
         </el-row>
 
-        <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange">
+        <el-table v-loading="loading" :data="userList" @selection-change="handleSelectionChange" border>
           <el-table-column type="selection" width="50" align="center" />
 
           <!-- 用户编号（保留但默认隐藏） -->
@@ -72,7 +72,7 @@
           <el-table-column label="入伍年份" align="center" key="yearOfEnlistment" prop="yearOfEnlistment" v-if="columns.yearOfEnlistment.visible" :show-overflow-tooltip="true" />
 
           <!-- 性别 -->
-          <el-table-column label="性别" align="center" key="sex" prop="sex" v-if="columns.sex.visible">
+          <el-table-column label="性别" align="center" key="sex" v-if="columns.sex.visible">
             <template slot-scope="scope">
               {{ selectDictLabel(dict.type.sys_user_sex, scope.row.sex) }}
             </template>
@@ -144,20 +144,14 @@
           </el-col>
         </el-row>
         <el-row>
+
           <el-col :span="12">
-            <el-form-item label="流水号" prop="serialNo">
-              <el-input v-model="form.serialNo" placeholder="请输入流水号" maxlength="11" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="人员类别">
-              <el-select v-model="form.personCategory" placeholder="请选择人员类别">
+            <el-form-item label="人员类别"prop="personCategory">
+              <el-select v-model="form.personCategory" placeholder="请选择人员类别" @change="fetchSerialNumber">
                 <el-option v-for="dict in dict.type.person_category" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row>
           <el-col :span="12">
             <el-form-item label="入伍年份" prop="yearOfEnlistment">
               <el-date-picker
@@ -168,16 +162,23 @@
                 value-format="yyyy"
                 clearable
                 style="width: auto;"
+                @change="fetchSerialNumber"
               />
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row>
           <el-col :span="12">
-            <el-form-item label="性别">
-              <el-select v-model="form.sex" placeholder="请选择性别">
-                <el-option v-for="dict in dict.type.sys_user_sex" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
-              </el-select>
+            <el-form-item label="流水号" prop="serialNo">
+              <el-input v-model="form.serialNo" placeholder="自动生成" disabled />
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="人员编号" prop="userNumber">
+              <el-input v-model="form.userNumber" placeholder="自动生成" disabled />
+            </el-form-item>
+          </el-col>
+
 
         </el-row>
         <el-row>
@@ -195,14 +196,14 @@
         </el-row>
         <el-row>
           <el-col :span="12">
-            <el-form-item label="血型">
+            <el-form-item label="血型" prop="bloodType">
               <el-select v-model="form.bloodType" placeholder="请选择血型">
                 <el-option v-for="dict in dict.type.sys_blood_type" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="过敏史">
+            <el-form-item label="过敏史" prop="historyOfDrugAllergy">
               <el-select v-model="form.historyOfDrugAllergy" placeholder="请选择过敏史">
                 <el-option v-for="dict in dict.type.sys_history_of_drug_allergy" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
               </el-select>
@@ -210,16 +211,18 @@
           </el-col>
         </el-row>
         <el-row>
-          <el-col :span="12" v-if="false">
-            <el-form-item label="角色">
+          <el-col :span="12" >
+            <el-form-item label="角色" prop="roleIds">
               <el-select v-model="form.roleIds" multiple placeholder="请选择角色">
                 <el-option v-for="item in roleOptions" :key="item.roleId" :label="item.roleName" :value="item.roleId" :disabled="item.status == 1"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="人员编号" prop="userNumber">
-              <el-input v-model="form.userNumber" placeholder="请输入人员编号" maxlength="30" />
+            <el-form-item label="性别"  prop="sex">
+              <el-select v-model="form.sex" placeholder="请选择性别">
+                <el-option v-for="dict in dict.type.sys_user_sex" :key="dict.value" :label="dict.label" :value="dict.value"></el-option>
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -245,7 +248,7 @@
 </template>
 
 <script>
-import { listUser, getUser, delUser, addUser, updateUser, resetUserPwd, changeUserStatus, deptTreeSelect } from "@/api/system/user"
+import { listUser, getUser, delUser, addUser, updateUser, resetUserPwd, changeUserStatus, deptTreeSelect, generateUserNumber } from "@/api/system/user"
 import Treeselect from "@riophae/vue-treeselect"
 import "@riophae/vue-treeselect/dist/vue-treeselect.css"
 import TreePanel from "@/components/TreePanel"
@@ -321,7 +324,30 @@ export default {
         ],
         nickName: [
           { required: true, message: "用户昵称不能为空", trigger: "blur" }
-        ]
+        ],
+        // 新增角色必填验证
+        roleIds: [
+          { required: true, message: "请至少选择一个角色", trigger: "blur" }
+        ],
+        personCategory: [
+          { required: true, message: "人员类别不能为空", trigger: "blur" }
+        ],
+        yearOfEnlistment: [
+          { required: true, message: "入伍年份不能为空", trigger: "blur" }
+        ],
+        sex: [
+          { required: true, message: "性别不能为空", trigger: "blur" }
+        ],
+        deptId: [
+          { required: true, message: "请至少选择一个部门", trigger: "blur" }
+        ],
+        bloodType: [
+          { required: true, message: "血型不能为空", trigger: "blur" }
+        ],
+        historyOfDrugAllergy: [
+          { required: true, message: "过敏史不能为空", trigger: "blur" }
+        ],
+
       }
     }
   },
@@ -441,18 +467,35 @@ export default {
       getUser().then(response => {
         this.postOptions = response.posts;
         this.roleOptions = response.roles;
-        // 新增用户默认选中“普通角色”
-        const defaultRole = this.roleOptions.find(
-          item => item.roleKey === 'common' || item.roleName === '普通角色'
-        );
-        if (defaultRole) {
-          this.form.roleIds = [defaultRole.roleId];
-        } else {
-          this.form.roleIds = [];
-        }
         this.open = true;
         this.title = "添加用户";
         this.form.password = this.initPassword;
+
+        // 设置默认入队年份（当前年份）
+        const currentYear = new Date().getFullYear().toString();
+        this.form.yearOfEnlistment = currentYear;
+        // 如果有默认人员类别，也可设置，否则用户自己选
+         this.form.personCategory = '1'; // 示例
+
+        // 调用生成接口获取流水号和人员编号
+        this.fetchSerialNumber();
+      });
+    },
+
+// 新增方法：根据当前表单的人员类别和入队年份生成编号
+    fetchSerialNumber() {
+      const { personCategory, yearOfEnlistment } = this.form;
+      if (!personCategory || !yearOfEnlistment) {
+        // 可以提示用户先选择类别和年份
+        this.$message.warning('请先选择人员类别和入队年份');
+        return;
+      }
+      generateUserNumber(personCategory, yearOfEnlistment).then(response => {
+        this.form.serialNo = response.data.serialNo;
+        this.form.userNumber = response.data.userNumber;
+        // 将这两个字段设置为只读（通过表单控件的 disabled 或 readonly）
+      }).catch(() => {
+        // 失败处理
       });
     },
     /** 修改按钮操作 */
@@ -535,3 +578,9 @@ export default {
   }
 }
 </script>
+<style scoped>
+/* 深度选择器覆盖按钮圆角 */
+::v-deep .el-button {
+  border-radius: 16px;
+}
+</style>

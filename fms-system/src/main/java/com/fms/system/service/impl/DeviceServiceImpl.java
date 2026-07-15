@@ -1,7 +1,14 @@
 package com.fms.system.service.impl;
 
 
+import java.util.ArrayList;
 import java.util.List;
+
+import com.fms.system.domain.EventLog;
+import com.fms.system.domain.ReaderEvent;
+import com.fms.system.domain.Vehicle;
+import com.fms.system.mapper.EventLogMapper;
+import com.fms.system.mapper.VehicleMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +31,10 @@ public class DeviceServiceImpl implements IDeviceService
     @Autowired
     private DeviceMapper deviceMapper;
 
+    @Autowired
+    private VehicleMapper vehicleMapper;
+    @Autowired
+    private EventLogMapper eventLogMapper;
     @Override
     public List<Device> selectDeviceList(Device device)
     {
@@ -81,8 +92,28 @@ public class DeviceServiceImpl implements IDeviceService
     }
 
     @Override
-    public int deleteDeviceByIds(Long[] ids)
-    {
+    public int deleteDeviceByIds(Long[] ids) {
+        // 用于收集所有有关联车辆的装置名称及对应的车辆名称
+        List<String> errorMessages = new ArrayList<>();
+
+        for (Long deviceId : ids) {
+            // 查询该装置关联的所有车辆（一个装置可能关联多辆车，但业务上可能一对一，但以防万一用列表）
+            Vehicle vehicles = vehicleMapper.selectVehicleByDeviceId(deviceId);
+            if (null != vehicles) {
+                // 获取装置名称（这里需要先查询装置信息，或者从 deviceId 获取名称）
+                Device device = deviceMapper.selectDeviceById(deviceId);
+                String deviceName = device != null ? device.getName() : "ID:" + deviceId;
+                errorMessages.add("装置【" + deviceName + "】已关联车辆【" + vehicles.getName() + "】");
+            }
+        }
+
+        // 如果有任何错误，一次性抛出所有提示
+        if (!errorMessages.isEmpty()) {
+            String fullMessage = String.join("；", errorMessages) + "，请先解绑再删除";
+            throw new ServiceException(fullMessage);
+        }
+
+        // 全部校验通过，执行删除
         return deviceMapper.deleteDeviceByIds(ids);
     }
 
@@ -110,5 +141,12 @@ public class DeviceServiceImpl implements IDeviceService
             return UserConstants.NOT_UNIQUE;
         }
         return UserConstants.UNIQUE;
+    }
+
+    @Override
+    public void pushEvent(ReaderEvent readerEvent) {
+        EventLog log = new EventLog();
+
+        eventLogMapper.insertEventLog(log);
     }
 }

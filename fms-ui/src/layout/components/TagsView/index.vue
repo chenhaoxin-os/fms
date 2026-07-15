@@ -266,7 +266,7 @@ export default {
         mainContainer.classList.add('fullscreen-mode')
         document.body.style.overflow = 'hidden'
         const elementsToHide = [
-          { el: navbar, originalDisplay: (navbar && navbar.style.display) || '' }, 
+          { el: navbar, originalDisplay: (navbar && navbar.style.display) || '' },
           { el: sidebar, originalDisplay: (sidebar && sidebar.style.display) || '' }
         ]
         elementsToHide.forEach(item => {
@@ -656,33 +656,33 @@ $tags-bar-height: 34px;
     align-items: center;
     overflow-x: auto;
     overflow-y: hidden;
-    
+
     &::-webkit-scrollbar {
       width: 0;
       height: 0;
     }
-    
+
     .tags-view-container:hover & {
       &::-webkit-scrollbar {
         width: 6px;
         height: 6px;
       }
-      
+
       &::-webkit-scrollbar-track {
         background: transparent;
       }
-      
+
       &::-webkit-scrollbar-thumb {
         background-color: rgba(0, 0, 0, 0.2);
         border-radius: 3px;
         transition: background-color 0.2s;
-        
+
         &:hover {
           background-color: rgba(0, 0, 0, 0.4);
         }
       }
     }
-    
+
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -690,7 +690,7 @@ $tags-bar-height: 34px;
   .el-scrollbar__bar {
     opacity: 0;
     transition: opacity 0.3s;
-    
+
     .tags-view-container:hover & {
       opacity: 1;
     }

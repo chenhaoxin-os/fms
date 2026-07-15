@@ -1,6 +1,8 @@
 package com.fms.web.controller.system;
 
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -51,10 +53,10 @@ public class CardIssueController extends BaseController
     @PostMapping
     public AjaxResult add(@Validated @RequestBody CardIssue cardIssue)
     {
-        if (!cardIssueService.checkPersonCodeUnique(cardIssue))
-        {
-            return error("新增失败，人员编号【" + cardIssue.getPersonCode() + "】已存在");
-        }
+//        if (!cardIssueService.checkPersonCodeUnique(cardIssue))
+//        {
+//            return error("新增失败，人员编号【" + cardIssue.getPersonCode() + "】已存在");
+//        }
         cardIssue.setCreateBy(getUsername());
         return toAjax(cardIssueService.insertCardIssue(cardIssue));
     }
@@ -105,5 +107,17 @@ public class CardIssueController extends BaseController
     {
         boolean result = cardIssueService.cancelCard(id);
         return result ? success("注销成功") : error("注销失败");
+    }
+
+    @GetMapping("/generateCode")
+    public AjaxResult generateCode(@RequestParam String personCode, @RequestParam String cardType) {
+        Map<String, String> codeMap = cardIssueService.generateCode(personCode, cardType);
+        return success(codeMap);
+    }
+
+    @GetMapping("/getNameByEpcCode")
+    public AjaxResult getNameByEpcCode(@RequestParam String epcCode) {
+        String name = cardIssueService.getNameByEpcCode(epcCode);
+        return success(name);
     }
 }

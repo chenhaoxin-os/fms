@@ -2,35 +2,35 @@
   <div class="app-container tree-sidebar-manage-wrap">
     <div class="tree-sidebar-content">
       <div class="content-inner">
-        <!-- 统计卡片区域 -->
+        <!-- 统计卡片区域 - 添加点击事件 -->
         <div class="stats-grid">
-          <div class="stat-card">
+          <div class="stat-card" :class="{ active: !queryParams.status }" @click="handleCardFilter(null)">
             <div class="stat-info">
-              <h4><i class="el-icon-cpu"></i> 总装置数</h4>
+              <h4><i class="el-icon-data-line"></i> 总装置数</h4>
               <div class="stat-number">{{ formatNumber(statistics.total) }}</div>
             </div>
             <div class="stat-icon"><i class="el-icon-data-line"></i></div>
           </div>
-          <div class="stat-card online">
+          <div class="stat-card online" :class="{ active: queryParams.status === 'online' }" @click="handleCardFilter('online')">
             <div class="stat-info">
-              <h4><i class="el-icon-success"></i> 在线运行</h4>
+              <h4><i class="el-icon-connection"></i> 在线运行</h4>
               <div class="stat-number">{{ formatNumber(statistics.online) }}</div>
             </div>
             <div class="stat-icon"><i class="el-icon-connection"></i></div>
           </div>
-          <div class="stat-card lowbatt">
+          <div class="stat-card lowbatt" :class="{ active: queryParams.status === 'low_battery' }" @click="handleCardFilter('low_battery')">
             <div class="stat-info">
               <h4><i class="el-icon-warning"></i> 低电量</h4>
               <div class="stat-number">{{ formatNumber(statistics.lowBattery) }}</div>
             </div>
-            <div class="stat-icon"><i class="el-icon-cpu"></i></div>
+            <div class="stat-icon"><i class="el-icon-warning"></i></div>
           </div>
-          <div class="stat-card offline">
+          <div class="stat-card offline" :class="{ active: queryParams.status === 'offline' }" @click="handleCardFilter('offline')">
             <div class="stat-info">
               <h4><i class="el-icon-turn-off"></i> 离线</h4>
               <div class="stat-number">{{ formatNumber(statistics.offline) }}</div>
             </div>
-            <div class="stat-icon"><i class="el-icon-circle-close"></i></div>
+            <div class="stat-icon"><i class="el-icon-turn-off"></i></div>
           </div>
         </div>
 
@@ -43,7 +43,7 @@
             <el-input v-model="queryParams.name" placeholder="请输入装置名称" clearable style="width: 200px" @keyup.enter.native="handleQuery" />
           </el-form-item>
           <el-form-item label="状态" prop="status">
-            <el-select v-model="queryParams.status" placeholder="装置状态" clearable style="width: 180px">
+            <el-select v-model="queryParams.status" placeholder="装置状态" clearable style="width: 180px" @change="handleStatusSelectChange">
               <el-option label="在线" value="online" />
               <el-option label="低电预警" value="low_battery" />
               <el-option label="离线" value="offline" />
@@ -65,21 +65,11 @@
           <el-col :span="1.5">
             <el-button type="primary" plain icon="el-icon-plus" size="mini" @click="handleAdd">新增</el-button>
           </el-col>
-<!--          <el-col :span="1.5">-->
-<!--            <el-button type="success" plain icon="el-icon-edit" size="mini" :disabled="single" @click="handleUpdate">修改</el-button>-->
-<!--          </el-col>-->
-<!--          <el-col :span="1.5">-->
-<!--            <el-button type="danger" plain icon="el-icon-delete" size="mini" :disabled="multiple" @click="handleDelete">删除</el-button>-->
-<!--          </el-col>-->
-<!--          <el-col :span="1.5">-->
-<!--            <el-button type="warning" plain icon="el-icon-download" size="mini" @click="handleExport">导出</el-button>-->
-<!--          </el-col>-->
           <right-toolbar :showSearch.sync="showSearch" @queryTable="getList" :columns="columns"></right-toolbar>
         </el-row>
 
         <!-- 装置列表表格 -->
-        <el-table v-loading="loading" :data="deviceList" @selection-change="handleSelectionChange">
-<!--          <el-table-column type="selection" width="50" align="center" />-->
+        <el-table v-loading="loading" :data="deviceList" @selection-change="handleSelectionChange" border>
           <el-table-column label="装置编号" align="center" key="deviceId" prop="deviceId" v-if="columns.deviceId.visible" />
           <el-table-column label="装置名称" align="center" key="name" prop="name" v-if="columns.name.visible" />
           <el-table-column label="类型" align="center" key="type" prop="type" v-if="columns.type.visible">
@@ -98,7 +88,7 @@
                   :color="getBatteryColor(scope.row.batteryLevel)"
                   :stroke-width="10"
                   :show-text="false"
-                  style="width: 100%;"
+                  style="width: 50%;"
                 />
                 <!-- 下方文本：百分比 / 压力值 -->
                 <div style="font-size: 12px; color: #606266;">
@@ -109,12 +99,6 @@
               </div>
             </template>
           </el-table-column>
-<!--          <el-table-column label="电量/指标" align="center" key="batteryLevel" prop="batteryLevel" v-if="columns.batteryLevel.visible" width="100">-->
-<!--            <template slot-scope="scope">-->
-<!--              <el-progress :percentage="scope.row.batteryLevel" :color="getBatteryColor(scope.row.batteryLevel)" :stroke-width="10" :show-text="true" />-->
-<!--            </template>-->
-<!--          </el-table-column>-->
-<!--          <el-table-column label="压力(MPa)" align="center" key="pressure" prop="pressure" v-if="columns.pressure.visible" width="100" />-->
           <el-table-column label="状态" align="center" key="status" v-if="columns.status.visible">
             <template slot-scope="scope">
               <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
@@ -144,24 +128,24 @@
     </div>
 
     <!-- 添加或修改装置对话框 -->
-    <el-dialog :title="title" :visible.sync="open" width="600px" append-to-body>
+    <el-dialog :title="title" :visible.sync="open" width="450px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="装置编号" prop="deviceId">
-          <el-input v-model="form.deviceId" placeholder="请输入装置编号" maxlength="50" />
+          <el-input v-model="form.deviceId" placeholder="请输入装置编号" maxlength="50" style="width: 260px" />
         </el-form-item>
         <el-form-item label="装置名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入装置名称" maxlength="50" />
+          <el-input v-model="form.name" placeholder="请输入装置名称" maxlength="50" style="width: 260px" />
         </el-form-item>
         <el-form-item label="装置类型" prop="type">
-          <el-select v-model="form.type" placeholder="请选择装置类型">
+          <el-select v-model="form.type" placeholder="请选择装置类型" style="width: 260px">
             <el-option v-for="item in typeOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="电量(%)" prop="batteryLevel">
-          <el-input-number v-model="form.batteryLevel" :min="0" :max="100" label="电量百分比" style="width: 200px" />
+          <el-input-number v-model="form.batteryLevel" :min="0" :max="100" label="电量百分比" style="width: 260px" />
         </el-form-item>
         <el-form-item label="压力(MPa)" prop="pressure">
-          <el-input-number v-model="form.pressure" :min="0" :max="50" :precision="1" step="0.5" style="width: 200px" />
+          <el-input-number v-model="form.pressure" :min="0" :max="50" :precision="1" step="0.5" style="width: 260px" />
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="form.status">
@@ -170,8 +154,8 @@
             <el-radio label="low_battery">低电预警</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="最后通讯时间" v-if="form.lastComTime">
-          <span>{{ form.lastComTime }}</span>
+        <el-form-item label="最后通讯时间" v-if="form.lastComTime" :formatter="formatDateTime">
+          <span>{{ formatTime(form.lastComTime) }}</span>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -203,7 +187,7 @@ import Pagination from "@/components/Pagination"
 import DeviceViewDrawer from "./view";
 export default {
   name: "DeviceManagement",
-  components: { TreePanel, RightToolbar, Pagination,DeviceViewDrawer },
+  components: { TreePanel, RightToolbar, Pagination, DeviceViewDrawer },
   data() {
     return {
       // 加载状态
@@ -263,6 +247,10 @@ export default {
       },
       // 表单校验规则
       rules: {
+        deviceId: [
+          { required: true, message: "装置编号不能为空", trigger: "blur" },
+          { min: 1, max: 50, message: "长度在 1 到 50 个字符", trigger: "blur" }
+        ],
         name: [
           { required: true, message: "装置名称不能为空", trigger: "blur" },
           { min: 1, max: 50, message: "长度在 1 到 50 个字符", trigger: "blur" }
@@ -297,6 +285,17 @@ export default {
         this.loading = false;
       });
     },
+    formatTime(time) {
+      if (!time) return ''
+      const d = new Date(time)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      const hours = String(d.getHours()).padStart(2, '0')
+      const minutes = String(d.getMinutes()).padStart(2, '0')
+      const seconds = String(d.getSeconds()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    },
     // 获取状态文字
     getStatusText(status) {
       switch (status) {
@@ -306,7 +305,7 @@ export default {
         default: return status;
       }
     },
-// 获取状态圆点样式类
+    // 获取状态圆点样式类
     getStatusDotClass(status) {
       switch (status) {
         case 'online': return 'dot-online';
@@ -356,6 +355,8 @@ export default {
     resetQuery() {
       this.resetForm("queryForm");
       this.queryParams.categoryId = undefined;
+      // 重置状态筛选
+      this.queryParams.status = undefined;
       if (this.$refs.categoryTreeRef) {
         this.$refs.categoryTreeRef.setCurrentKey(null);
       }
@@ -496,9 +497,35 @@ export default {
     },
     /** 电量进度条颜色 */
     getBatteryColor(level) {
-      if (level >= 80) return "#67C23A";
+      if (level >= 80) return "#52c41a";
       if (level >= 30) return "#E6A23C";
       return "#F56C6C";
+    },
+    /**
+     * 点击卡片筛选 - 按状态筛选装置列表
+     * @param {string|null} status 状态值: 'online', 'low_battery', 'offline', null表示全部
+     */
+    handleCardFilter(status) {
+      // 如果点击的状态与当前已选状态相同，则清除筛选（显示全部）
+      if (this.queryParams.status === status) {
+        this.queryParams.status = undefined;
+      } else {
+        this.queryParams.status = status;
+      }
+      // 重置页码并重新查询
+      this.handleQuery();
+    },
+    /**
+     * 状态下拉框变化时的处理 - 保持与卡片高亮同步
+     */
+    handleStatusSelectChange(value) {
+      // 当下拉框状态改变时，不需要额外操作，因为v-model已经绑定了queryParams.status
+      // 但为了确保查询触发，可以调用查询（可选）
+      // 为了与卡片点击行为一致，这里也触发查询
+      if (value === undefined || value === '') {
+        this.queryParams.status = undefined;
+      }
+      this.handleQuery();
     }
   }
 };
@@ -522,6 +549,7 @@ export default {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.3s;
   border: 1px solid #ebeef5;
+  cursor: pointer;  /* 添加手型光标 */
 }
 .stat-card:hover {
   transform: translateY(-2px);
@@ -542,9 +570,31 @@ export default {
   font-size: 36px;
   color: #409eff;
 }
-.stat-card.online .stat-icon { color: #67c23a; }
+.stat-card.online .stat-icon { color: #52c41a; }
 .stat-card.lowbatt .stat-icon { color: #e6a23c; }
 .stat-card.offline .stat-icon { color: #909399; }
+
+/* 卡片激活高亮样式 */
+.stat-card.active {
+  border: 1px solid #409eff;
+  box-shadow: 0 4px 12px 0 rgba(64, 158, 255, 0.2);
+  background-color: #f0f9ff;
+}
+.stat-card.online.active {
+  border-color: #52c41a;
+  background-color: #f0f9ef;
+  box-shadow: 0 4px 12px 0 rgba(103, 194, 58, 0.2);
+}
+.stat-card.lowbatt.active {
+  border-color: #e6a23c;
+  background-color: #fef7e8;
+  box-shadow: 0 4px 12px 0 rgba(230, 162, 60, 0.2);
+}
+.stat-card.offline.active {
+  border-color: #f56c6c;
+  background-color: #fef0f0;
+  box-shadow: 0 4px 12px 0 rgba(245, 108, 108, 0.2);
+}
 
 .mb8 {
   margin-bottom: 8px;
@@ -566,6 +616,7 @@ export default {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.3s;
   border: 1px solid #ebeef5;
+  cursor: pointer;
 }
 .stat-card:hover {
   transform: translateY(-2px);
@@ -594,38 +645,38 @@ export default {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  margin-right: 4px; /* 可在 flex gap 基础上微调 */
+  margin-right: 4px;
 }
 .dot-online {
-  background-color: #67C23A; /* 在线绿色 */
+  background-color: #52c41a;
   box-shadow: 0 0 0 2px rgba(103, 194, 58, 0.2);
 }
 .dot-offline {
-  background-color: #909399; /* 离线灰色 */
+  background-color: #909399;
 }
 .dot-lowbatt {
-  background-color: #E6A23C; /* 低电量橙色 */
+  background-color: #E6A23C;
 }
 /* 不同卡片图标颜色 */
-.stat-card.online .stat-icon { color: #67c23a; }
+.stat-card.online .stat-icon { color: #52c41a; }
 .stat-card.lowbatt .stat-icon { color: #e6a23c; }
 .stat-card.offline .stat-icon { color: #909399; }
 
-/* 统计卡片通用左边框基础 */
+/* 统计卡片左边框基础 */
 .stat-card {
-  border-left: 4px solid #303133; /* 默认黑色左边框 */
+  border-left: 4px solid dodgerblue;
 }
 .stat-card .stat-number {
-  font-weight: 700; /* 加粗更明显 */
-  color: #303133;   /* 默认黑色 */
+  font-weight: 700;
+  color: #303133;
 }
 
 /* 在线运行卡片：绿色边框 + 绿色数字 */
 .stat-card.online {
-  border-left-color: #67C23A;
+  border-left-color: #52c41a;
 }
 .stat-card.online .stat-number {
-  color: #67C23A;
+  color: #52c41a;
 }
 
 /* 低电量卡片：橙色边框 + 橙色数字 */
@@ -642,5 +693,9 @@ export default {
 }
 .stat-card.offline .stat-number {
   color: #F56C6C;
+}
+/* 深度选择器覆盖按钮圆角 */
+::v-deep .el-button {
+  //border-radius: 16px;
 }
 </style>
