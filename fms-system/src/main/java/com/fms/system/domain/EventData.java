@@ -20,4 +20,23 @@ public class EventData {
 
     @JsonProperty("rc")
     private Integer rc;
+
+    @JsonProperty("fq")
+    private Integer fq;
+
+    @JsonProperty("pt")
+    private Integer pt;
+
+    @JsonProperty("ri")
+    private Integer ri;
+
+    @JsonProperty("rv")
+    private Integer rv;
+
+    @JsonProperty("ft")
+    private Integer ft;
+
+    @JsonProperty("lt")
+    private Integer lt;
+
 }

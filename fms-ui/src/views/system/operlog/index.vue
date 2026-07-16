@@ -6,7 +6,16 @@
       <!-- 左侧: 随车人员实时展示区块 (调窄宽度) -->
       <div class="left-vehicles">
         <div class="card-panel" style="padding: 20px; margin-bottom: 12px;">
-          <div style="font-weight: 600; font-size: 16px; margin-bottom: 12px;">🚨 随车人员实时展示</div>
+          <div style="font-weight: 600; font-size: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <span>🚨 随车人员实时展示</span>
+            <span style="font-size: 12px; font-weight: normal; color: #67c23a;">
+              <span v-if="wsConnected" style="display: inline-flex; align-items: center; gap: 4px;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #67c23a; animation: pulse 1.5s ease-in-out infinite;"></span>
+                实时
+              </span>
+              <span v-else style="color: #f56c6c;">● 离线</span>
+            </span>
+          </div>
         </div>
         <div class="vehicle-list">
           <div v-for="vehicle in vehicleList" :key="vehicle.id" class="vehicle-card">
@@ -75,6 +84,7 @@
           <!-- 操作按钮栏 -->
           <div class="action-bar">
             <el-button type="primary" size="small" icon="el-icon-plus" @click="handleAdd">新增</el-button>
+            <el-button size="small" icon="el-icon-refresh" @click="manualRefresh" :loading="refreshing">刷新车辆</el-button>
           </div>
 
           <!-- 表格 -->
@@ -192,12 +202,11 @@ import {
   addEvent,
   updateEvent,
   delEvent,
-  exportEvent,
-  changeEventStatus
+  exportEvent
 } from '@/api/system/event'
 
-// ========== 新增：导入车辆 API ==========
 import { getVehicleList } from '@/api/system/vehicle'
+import VehicleWebSocket from '@/utils/websocket'
 
 export default {
   name: 'IdentityManagement',
@@ -253,55 +262,96 @@ export default {
       },
       // 抽屉
       drawerVisible: false,
-      currentJsonStr: ''
+      currentJsonStr: '',
+      // WebSocket
+      wsInstance: null,
+      wsConnected: false,
+      refreshing: false
     };
   },
   created() {
-    // ========== 替换为真实数据加载 ==========
     this.fetchVehicleList();
     this.getStatistics();
     this.getEventList();
+    this.initWebSocket();
+  },
+  beforeDestroy() {
+    if (this.wsInstance) {
+      this.wsInstance.close();
+      this.wsInstance = null;
+    }
   },
   methods: {
-    // ========== 新增：从 API 获取车辆列表 ==========
+    // ========== WebSocket 初始化 ==========
+    initWebSocket() {
+      this.wsInstance = new VehicleWebSocket({
+        onMessage: (data) => {
+          if (data.type === 'vehicleUpdate') {
+            console.log('收到 WebSocket 车辆更新数据，时间戳:', data.timestamp);
+            this.processVehicleData(data.data);
+          }
+        },
+        onOpen: () => {
+          this.wsConnected = true;
+          console.log('WebSocket 已连接，等待实时数据推送');
+        },
+        onClose: () => {
+          this.wsConnected = false;
+          console.log('WebSocket 已断开');
+        },
+        onError: (error) => {
+          this.wsConnected = false;
+          console.error('WebSocket 错误：', error);
+        }
+      });
+    },
+
+    // ========== 处理车辆数据（共用逻辑） ==========
+    processVehicleData(rawData) {
+      const data = rawData || [];
+      // 过滤：只保留 deviceId 不为空的车辆
+      const filteredData = data.filter(vehicle =>
+        vehicle.deviceId != null && vehicle.deviceId !== ''
+      );
+
+      this.vehicleList = filteredData.map(vehicle => {
+        const isActive = vehicle.isRunning && vehicle.devicePower;
+        const status = isActive ? '进行中' : '待命';
+
+        let membersToShow = [];
+        if (isActive && vehicle.stableCrew) {
+          try {
+            console.log('vehicle.stableCrew', vehicle.stableCrew);
+            const crewData = typeof vehicle.stableCrew === 'string'
+              ? JSON.parse(vehicle.stableCrew)
+              : vehicle.stableCrew;
+            if (Array.isArray(crewData)) {
+              membersToShow = crewData;
+            }
+          } catch (e) {
+            membersToShow = [];
+          }
+        }
+        const currentCrew = membersToShow.length;
+
+        return {
+          id: vehicle.id,
+          plate: vehicle.plate,
+          name: vehicle.name,
+          maxCapacity: vehicle.maxCapacity,
+          status: status,
+          members: membersToShow,
+          currentCrew: currentCrew
+        };
+      });
+    },
+
+    // ========== 从 API 获取车辆列表（初始加载 + 降级方案） ==========
     async fetchVehicleList() {
       try {
         const res = await getVehicleList({ pageNum: 1, pageSize: 1000 });
         if (res.code === 200) {
-          const rawData = res.rows || [];
-          // ========== 新增过滤：只保留 deviceId 不为空的车辆 ==========
-          const filteredData = rawData.filter(vehicle => vehicle.deviceId != null && vehicle.deviceId !== '');
-
-          this.vehicleList = filteredData.map(vehicle => {
-            const isActive = vehicle.isRunning && vehicle.devicePower;
-            const status = isActive ? '进行中' : '待命';
-
-            let membersToShow = [];
-            if (isActive && vehicle.stableCrew) {
-              try {
-                console.log('vehicle.stableCrew', vehicle.stableCrew)
-                const crewData = typeof vehicle.stableCrew === 'string'
-                  ? JSON.parse(vehicle.stableCrew)
-                  : vehicle.stableCrew;
-                if (Array.isArray(crewData)) {
-                  membersToShow = crewData;
-                }
-              } catch (e) {
-                membersToShow = [];
-              }
-            }
-            const currentCrew = membersToShow.length;
-
-            return {
-              id: vehicle.id,
-              plate: vehicle.plate,
-              name: vehicle.name,
-              maxCapacity: vehicle.maxCapacity,
-              status: status,
-              members: membersToShow,
-              currentCrew: currentCrew
-            };
-          });
+          this.processVehicleData(res.rows || []);
         }
       } catch (error) {
         console.error('获取车辆数据失败:', error);
@@ -309,7 +359,29 @@ export default {
       }
     },
 
-    // 获取事件统计
+    // ========== 手动刷新 ==========
+    manualRefresh() {
+      this.refreshing = true;
+      // 优先尝试 WebSocket 请求
+      if (this.wsInstance && this.wsConnected) {
+        this.wsInstance.send('REFRESH');
+        this.$message.success('已发送刷新请求');
+        setTimeout(() => {
+          this.refreshing = false;
+        }, 1000);
+      } else {
+        // 降级方案：HTTP 请求
+        this.fetchVehicleList().then(() => {
+          this.refreshing = false;
+          this.$message.success('刷新成功');
+        }).catch(() => {
+          this.refreshing = false;
+          this.$message.error('刷新失败');
+        });
+      }
+    },
+
+    // ========== 获取事件统计 ==========
     async getStatistics() {
       try {
         const res = await getEventStatistics();
@@ -321,7 +393,7 @@ export default {
       }
     },
 
-    // 获取事件列表
+    // ========== 获取事件列表 ==========
     async getEventList() {
       this.loading = true;
       try {
@@ -367,12 +439,12 @@ export default {
       }
     },
 
-    // 表格多选
+    // ========== 表格多选 ==========
     handleSelectionChange(selection) {
       this.selectedEventIds = selection.map(item => item.id);
     },
 
-    // 新增
+    // ========== 新增 ==========
     handleAdd() {
       this.dialogTitle = '新增事件';
       this.isEdit = false;
@@ -396,7 +468,7 @@ export default {
       });
     },
 
-    // 编辑
+    // ========== 编辑 ==========
     async handleEdit(row) {
       const eventId = row?.id || (this.selectedEventIds.length === 1 ? this.selectedEventIds[0] : null);
       if (!eventId) {
@@ -443,7 +515,7 @@ export default {
       }
     },
 
-    // 删除
+    // ========== 删除 ==========
     async handleDelete(row) {
       let ids = [];
       if (row) {
@@ -477,7 +549,7 @@ export default {
       }).catch(() => {});
     },
 
-    // 导出
+    // ========== 导出 ==========
     async handleExport() {
       try {
         const params = { ...this.queryParams };
@@ -508,7 +580,7 @@ export default {
       }
     },
 
-    // 提交表单
+    // ========== 提交表单 ==========
     submitForm() {
       this.$refs.eventForm.validate(async (valid) => {
         if (valid) {
@@ -551,7 +623,7 @@ export default {
       });
     },
 
-    // 取消对话框
+    // ========== 取消对话框 ==========
     cancel() {
       this.dialogVisible = false;
       this.formData = {};
@@ -639,7 +711,7 @@ export default {
 </script>
 
 <style scoped>
-/* 样式保持不变，省略（与原文件相同） */
+/* ========== 原有样式 ========== */
 .identity-system {
   max-width: 1600px;
   margin: 0 auto;
@@ -842,6 +914,18 @@ export default {
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;
+}
+
+/* ========== WebSocket 状态动画 ========== */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
 }
 
 @media (max-width: 1000px) {

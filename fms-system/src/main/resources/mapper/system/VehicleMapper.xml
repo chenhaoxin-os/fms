@@ -33,6 +33,9 @@
 			<if test="name != null and name != ''">
 				and name like concat('%', #{name}, '%')
 			</if>
+			<if test="deviceId != null">
+				and device_id = #{deviceId}
+			</if>
 		</where>
 		order by id desc
 	</select>

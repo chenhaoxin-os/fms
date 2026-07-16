@@ -9,4 +9,6 @@ public class TagState {
     private long seriesStart;              // 当前连续序列的开始时间
     private boolean inCar;                 // 是否在车
     private long carEnterTime;             // 进入在车的时间戳
+
+
 }
