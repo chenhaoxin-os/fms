@@ -4,6 +4,7 @@ package com.fms.web.controller.system;
 import com.fms.system.domain.EventData;
 import com.fms.system.domain.ReaderEvent;
 import com.fms.system.service.IDeviceService;
+import com.fms.system.service.TagStateService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -16,60 +17,29 @@ import java.util.Map;
 public class TagReadController {
 
     @Autowired
-    private IDeviceService deviceService;
+    private TagStateService tagStateService;
 
-    @PostMapping("/")
+    @PostMapping("/tagRead")
     public Map<String, Object> handleTagRead(
             @RequestBody ReaderEvent request,
             HttpServletRequest httpRequest) {
 
-        String clientIp = getClientIp(httpRequest);
-        log.info("========== 收到RFID标签上报请求 ==========");
-        log.info("客户端IP: {}", clientIp);
-        log.info("请求头: {}", getHeaders(httpRequest));
-        log.info("请求体: {}", request);
+        log.info("收到RFID上报，读写器: {}, 标签数: {}",
+                request.getReaderName(), request.getEventData().size());
 
-        // 打印详细信息
-        log.info("读写器名称: {}", request.getReaderName());
-        log.info("事件类型: {}", request.getEventType());
-        log.info("标签数量: {}", request.getEventData().size());
-        for (EventData eventData : request.getEventData()) {
-            log.info("标签EPC: {}, 天线: {}, 读取次数: {}",
-                    eventData.getEp(), eventData.getAt(), eventData.getRc());
+        // 委托状态处理
+        tagStateService.processEvents(request.getEventData());
 
+        // 可选的详细日志（按需保留）
+        for (EventData event : request.getEventData()) {
+            log.debug("EPC: {}, 天线: {}, 次数: {}", event.getEp(), event.getAt(), event.getRc());
         }
 
-        // 返回成功响应
         Map<String, Object> response = new HashMap<>();
         response.put("code", 0);
         response.put("msg", "success");
         response.put("timestamp", System.currentTimeMillis());
-
-        log.info("响应: {}", response);
         return response;
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
-    }
-
-    private Map<String, String> getHeaders(HttpServletRequest request) {
-        Map<String, String> headers = new HashMap<>();
-        java.util.Enumeration<String> headerNames = request.getHeaderNames();
-        while (headerNames.hasMoreElements()) {
-            String name = headerNames.nextElement();
-            headers.put(name, request.getHeader(name));
-        }
-        return headers;
-    }
 }
