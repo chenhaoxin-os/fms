@@ -3,6 +3,7 @@ package com.fms.system.service;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.fms.common.exception.ServiceException;
 import com.fms.system.domain.Device;
 import com.fms.system.domain.EventData;
 import com.fms.system.domain.TagState;
@@ -13,7 +14,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +46,10 @@ public class TagStateService {
     /**
      * 处理一批上报事件，更新每个标签的状态
      */
-    public void processEvents(List<EventData> events,String deviceCode) {
+    /**
+     * 处理一批上报事件，更新每个标签的状态
+     */
+    public void processEvents(List<EventData> events, String deviceCode) {
         long now = System.currentTimeMillis();
         for (EventData event : events) {
             String epc = event.getEp();
@@ -59,8 +65,8 @@ public class TagStateService {
             long gap = (now - state.getLastSeen()) / 1000;
             state.setLastSeen(now);
 
-            // 🔥 关键修复：如果标签已离车，重新出现时重置 seriesStart
-            if (!state.isInCar()&& gap > 5) {
+            // 如果标签已离车，重新出现时重置 seriesStart
+            if (!state.isInCar() && gap > 5) {
                 state.setSeriesStart(now);
                 log.info("【重新进入】EPC={} 离车后重新出现，重置连续计数", epc);
             }
@@ -71,14 +77,15 @@ public class TagStateService {
                     state.setInCar(true);
                     state.setCarEnterTime(now);
                     log.info("【在车判定】EPC={} 连续出现 {} 秒，标记为在车", epc, continuousSeconds);
-                    Device device = new  Device();
+
+                    Device device = new Device();
                     device.setDeviceId(deviceCode);
                     List<Device> devices = iDeviceService.selectDeviceList(device);
-                    if(null != devices && devices.size() > 0){
-                        Vehicle vehicle = new  Vehicle();
+                    if (null != devices && devices.size() > 0) {
+                        Vehicle vehicle = new Vehicle();
                         vehicle.setDeviceId(devices.get(0).getId());
                         List<Vehicle> vehicles = iVehicleService.selectVehicleList(vehicle);
-                        if(null != vehicles && vehicles.size() > 0){
+                        if (null != vehicles && vehicles.size() > 0) {
                             String stableCrewJson = vehicles.get(0).getStableCrew();
 
                             // 获取或创建 JSONArray
@@ -89,11 +96,27 @@ public class TagStateService {
                                 // 不为空：解析现有 JSON
                                 jsonArray = JSON.parseArray(stableCrewJson);
 
+                                // ========== 🔥 第一步：过滤掉空对象 ==========
+                                JSONArray cleanedArray = new JSONArray();
+                                for (int i = 0; i < jsonArray.size(); i++) {
+                                    JSONObject item = jsonArray.getJSONObject(i);
+                                    String itemName = item.getString("name");
+                                    // 只保留 name 不为 null 且不为空字符串的对象
+                                    if (itemName != null && !itemName.trim().isEmpty()) {
+                                        cleanedArray.add(item);
+                                    }
+                                }
+                                jsonArray = cleanedArray;
+
                                 // 使用 Map 去重，key 为 name，value 为 JSONObject
                                 Map<String, JSONObject> crewMap = new LinkedHashMap<>(); // 保持顺序
                                 for (int i = 0; i < jsonArray.size(); i++) {
                                     JSONObject item = jsonArray.getJSONObject(i);
-                                    crewMap.put(item.getString("name"), item);
+                                    String itemName = item.getString("name");
+                                    // 再次确保 name 有效（防御性编程）
+                                    if (itemName != null && !itemName.trim().isEmpty()) {
+                                        crewMap.put(itemName, item);
+                                    }
                                 }
 
                                 // 添加新成员（如果存在则覆盖）
@@ -115,12 +138,10 @@ public class TagStateService {
                                 jsonArray.add(newCrew);
                             }
 
-// 更新车辆
+                            // 更新车辆
                             vehicles.get(0).setStableCrew(JSON.toJSONString(jsonArray));
                             iVehicleService.updateVehicle(vehicles.get(0));
-                            VehicleWebSocket.broadcastVehicleData();
                         }
-
                     }
                 }
             } else {
@@ -236,5 +257,102 @@ public class TagStateService {
     // 可选：提供查询接口
     public ConcurrentHashMap<String, TagState> getStateMap() {
         return stateMap;
+    }
+
+    /**
+     * 处理设备心跳，更新通讯时间和状态
+     * @param readerName 读卡器名称（对应device_id）
+     */
+    @Transactional
+    public void updateDeviceHeartbeat(String readerName) {
+        if (readerName == null || readerName.trim().isEmpty()) {
+            log.warn("心跳更新失败：reader_name为空");
+            return;
+        }
+
+        try {
+            // 根据设备ID查询设备
+            Device device = new Device();
+            device.setDeviceId(readerName);
+            List<Device> devices = iDeviceService.selectDeviceList(device);
+            if(null != devices && !devices.isEmpty()){
+                device = devices.get(0);
+            }
+            if (device == null) {
+                log.warn("心跳更新失败：未找到设备 [{}]", readerName);
+                return;
+            }
+            Vehicle vehicle = new Vehicle();
+            vehicle.setDeviceId(devices.get(0).getId());
+            List<Vehicle> vehicles = iVehicleService.selectVehicleList(vehicle);
+            if(null !=  vehicles && !vehicles.isEmpty()){
+                vehicles.get(0).setIsRunning(true);
+                iVehicleService.updateVehicle(vehicles.get(0));
+            }
+            // 更新最后通讯时间和状态为上电
+            Device updateDevice = new Device();
+            updateDevice.setId(device.getId());
+            updateDevice.setLastComTime(java.time.LocalDateTime.now());
+            updateDevice.setStatus("online"); // 上电状态
+
+
+
+            // 如果心跳中包含电量信息，可以同时更新
+            // updateDevice.setBatteryLevel(batteryLevel);
+
+            iDeviceService.updateDevice(updateDevice);
+            log.info("设备 [{}] 心跳更新成功，状态: online", readerName);
+
+        } catch (Exception e) {
+            log.error("更新设备心跳失败，readerName: {}", readerName, e);
+            throw new ServiceException("更新设备心跳失败");
+        }
+    }
+
+    /**
+     * 每30秒执行一次，检测心跳超时的设备
+     * 超时时间：10秒
+     */
+    @Scheduled(fixedDelay = 30000) // 30秒执行一次
+    @Transactional
+    public void checkHeartbeatTimeout() {
+        try {
+            // 计算10秒前的时间
+            LocalDateTime timeoutTime = LocalDateTime.now().minusSeconds(10);
+
+            // 查询所有在线设备（状态为online）
+            Device query = new Device();
+            query.setStatus("online");
+            List<Device> onlineDevices = iDeviceService.selectDeviceList(query);
+
+            int offlineCount = 0;
+            for (Device device : onlineDevices) {
+                LocalDateTime lastComTime = device.getLastComTime();
+                if (lastComTime != null && lastComTime.isBefore(timeoutTime)) {
+                    // 心跳超时，设置为离线
+                    Vehicle vehicle = new Vehicle();
+                    vehicle.setDeviceId(device.getId());
+                    List<Vehicle> vehicles = iVehicleService.selectVehicleList(vehicle);
+                    if(null !=  vehicles && !vehicles.isEmpty()){
+                        vehicles.get(0).setIsRunning(false);
+                        iVehicleService.updateVehicle(vehicles.get(0));
+                    }
+                    Device updateDevice = new Device();
+                    updateDevice.setId(device.getId());
+                    updateDevice.setStatus("offline");
+                    iDeviceService.updateDevice(updateDevice);
+                    offlineCount++;
+                    log.info("设备 [{}] 心跳超时（最后通讯: {}），已设置为离线状态",
+                            device.getDeviceId(), lastComTime);
+                }
+            }
+
+            if (offlineCount > 0) {
+                log.info("心跳监控完成，共 {} 台设备因超时被设置为离线", offlineCount);
+            }
+
+        } catch (Exception e) {
+            log.error("心跳超时检测失败", e);
+        }
     }
 }

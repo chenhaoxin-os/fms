@@ -44,6 +44,11 @@ public class TagReadController {
                 log.debug("EPC: {}, 天线: {}, 次数: {}", event.getEp(), event.getAt(), event.getRc());
             }
         } else if (eventDataObj instanceof Integer) {
+            // 是整数，表示心跳信息
+            int heartbeatValue = (Integer) eventDataObj;
+            log.info("收到设备 [{}] 的心跳信号，心跳值: {}", rawRequest.get("reader_name").toString(), heartbeatValue);
+            // 更新设备状态为上电
+            tagStateService.updateDeviceHeartbeat(rawRequest.get("reader_name").toString());
             // 是整数，记录日志但忽略
             log.warn("event_data 是整数类型，值: {}, 忽略处理", eventDataObj);
         } else {
